@@ -145,12 +145,24 @@ int GSM3MobileClientService::openFile(char* fileUFS)
 	return res;
 }
 
-int GSM3MobileClientService::downloadFTP(char* file)
+int GSM3MobileClientService::downloadFTP(char* file, char* path)
 {
 	if(theGSM3MobileClientProvider==0)
 	return 2;
 	
-	int res=theGSM3MobileClientProvider->ftpDownload(file);
+	int res=theGSM3MobileClientProvider->ftpDownload(file, path);
+	if(flags & GSM3MOBILECLIENTSERVICE_SYNCH)
+	res=waitForAnswer();
+	
+	return res;
+}
+
+int GSM3MobileClientService::uploadFTP(char* file, char* path, char* data, int size)
+{
+	if(theGSM3MobileClientProvider==0)
+	return 2;
+	
+	int res=theGSM3MobileClientProvider->ftpUpload(file, path, data, size);
 	if(flags & GSM3MOBILECLIENTSERVICE_SYNCH)
 	res=waitForAnswer();
 	

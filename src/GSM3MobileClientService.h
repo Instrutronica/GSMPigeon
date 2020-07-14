@@ -98,7 +98,9 @@ class GSM3MobileClientService : public Client
 			@param file			FTP file
 			@return returns 0 if last command is still executing, 1 success, 2 if there are no resources
 		 */
-		int downloadFTP(char* file);
+		int downloadFTP(char* file, char* path);
+		
+		int uploadFTP(char* file, char* path, char* data, int size);
 		
 		int openFile(char* fileUFS);
 		

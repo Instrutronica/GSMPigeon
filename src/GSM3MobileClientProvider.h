@@ -98,7 +98,9 @@ class GSM3MobileClientProvider
 		
 		virtual int ufsOpenFile(char* flashFile)=0;
 		
-		virtual int ftpDownload(char* downloadfile)=0;
+		virtual int ftpDownload(char* downloadfile, char* downloadpath)=0;
+		
+		virtual int ftpUpload(char* uploadfile, char* uploadpath, char* uploaddata, int uploadsize)=0;
 		
 		virtual void ufsReadFile(int length)=0;
 		

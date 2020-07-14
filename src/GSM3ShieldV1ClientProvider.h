@@ -51,10 +51,16 @@ class GSM3ShieldV1ClientProvider : public GSM3MobileClientProvider,  public GSM3
 		uint16_t ftpPort;
 		char* ftpUser;
 		char* ftpPassword;
-		char* ftpFile;
+		char* ftpFileDownload;
+		char* ftpPathDownload;
 		char* ufsFile;
 		uint16_t ufsLength;
 		int byteCont;
+		
+		char* ftpFileUpload;
+		char* ftpPathUpload;
+		char* ftpDataUpload;
+		uint16_t ftpSizeUpload;
 		
 		
 		/** Continue to connect TCP client function
@@ -72,6 +78,8 @@ class GSM3ShieldV1ClientProvider : public GSM3MobileClientProvider,  public GSM3
 		void ftpOpenSessionContinue();
 		
 		void ftpDownloadContinue();
+		
+		void ftpUploadContinue();
 		
 		void ufsOpenFileContinue();
 		
@@ -212,9 +220,18 @@ class GSM3ShieldV1ClientProvider : public GSM3MobileClientProvider,  public GSM3
 		
 		/** Get to read a file from FTP server, the received file will be saved in UFS (User File Storage)
 			@param downloadfile: ftp file
+			@param downloadpath: ftp path
 			@return 1 if ok, 0 otherwise
 		 */
-		int ftpDownload(char* downloadfile);
+		int ftpDownload(char* downloadfile, char* downloadpath);
+		
+		/** Get to write a file from FTP server
+			@param uploadfile: ftp file
+			@param uploadpath: ftp path
+			@param uploadsize: ftp size
+			@return 1 if ok, 0 otherwise
+		 */
+		int ftpUpload(char* uploadfile, char* uploadpath, char* uploaddata, int uploadsize);		
 		
 		/** Open file saved in UFS (User File Storage)
 			@param flashFile: file to open

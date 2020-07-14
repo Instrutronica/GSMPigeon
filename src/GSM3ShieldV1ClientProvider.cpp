@@ -60,6 +60,9 @@ void GSM3ShieldV1ClientProvider::manageResponse(byte from, byte to)
 		case DOWNLOADFTPFILE:
 			ftpDownloadContinue();
 			break;
+		case UPLOADFTPFILE:
+			ftpUploadContinue();
+			break;			
 		case OPENUFSFILE:
 			ufsOpenFileContinue();
 			break;
@@ -430,9 +433,10 @@ void GSM3ShieldV1ClientProvider::ftpOpenSessionContinue()
 }
 
 
-int GSM3ShieldV1ClientProvider::ftpDownload(char* downloadfile)
+int GSM3ShieldV1ClientProvider::ftpDownload(char* downloadfile, char* downloadpath)
 {
-	ftpFile = downloadfile;
+	ftpFileDownload = downloadfile;
+	ftpPathDownload = downloadpath;
 	
 	theGSM3ShieldV1ModemCore.openCommand(this,DOWNLOADFTPFILE);
 	theGSM3ShieldV1ModemCore.registerUMProvider(this);
@@ -459,7 +463,11 @@ void GSM3ShieldV1ClientProvider::ftpDownloadContinue()
 			// Response received
 			if(resp)
 			{
-				theGSM3ShieldV1ModemCore.genericCommand_rq(PSTR("AT+QFTPPATH=\"/\""));
+				theGSM3ShieldV1ModemCore.genericCommand_rq(PSTR("AT+QFTPPATH=\""), false);
+				theGSM3ShieldV1ModemCore.print(ftpPathDownload);
+				theGSM3ShieldV1ModemCore.print("\"");
+				theGSM3ShieldV1ModemCore.print('\r');				
+				
 				theGSM3ShieldV1ModemCore.setCommandCounter(3);
 				// OK Received
 			}
@@ -479,7 +487,7 @@ void GSM3ShieldV1ClientProvider::ftpDownloadContinue()
 				// Great. We're done
 				theGSM3ShieldV1ModemCore.theBuffer().chopUntil(auxLocate2, true);
 				theGSM3ShieldV1ModemCore.genericCommand_rq(PSTR("AT+QFTPGET=\""), false);
-				theGSM3ShieldV1ModemCore.print(ftpFile);
+				theGSM3ShieldV1ModemCore.print(ftpFileDownload);
 				theGSM3ShieldV1ModemCore.print("\"");
 				theGSM3ShieldV1ModemCore.print('\r');
 				theGSM3ShieldV1ModemCore.setCommandCounter(4);
@@ -523,6 +531,111 @@ void GSM3ShieldV1ClientProvider::ftpDownloadContinue()
 			else theGSM3ShieldV1ModemCore.closeCommand(3);
 		}
 		break;
+	}
+}
+
+int GSM3ShieldV1ClientProvider::ftpUpload(char* uploadfile, char* uploadpath, char* uploaddata, int uploadsize)
+{
+	ftpFileUpload = uploadfile;
+	ftpPathUpload = uploadpath;
+	ftpDataUpload = uploaddata;
+	ftpSizeUpload = uploadsize;
+	
+	theGSM3ShieldV1ModemCore.openCommand(this,UPLOADFTPFILE);
+	theGSM3ShieldV1ModemCore.registerUMProvider(this);
+	ftpUploadContinue();
+	return theGSM3ShieldV1ModemCore.getCommandError();
+}
+
+//Connect TCP continue function.
+void GSM3ShieldV1ClientProvider::ftpUploadContinue()
+{
+	bool resp;
+
+	switch (theGSM3ShieldV1ModemCore.getCommandCounter()) {	
+		case 1:
+		theGSM3ShieldV1ModemCore.genericCommand_rq(PSTR("AT+QFTPPATH=\""), false);
+		theGSM3ShieldV1ModemCore.print(ftpPathUpload);
+		theGSM3ShieldV1ModemCore.print("\"");
+		theGSM3ShieldV1ModemCore.print('\r');
+		theGSM3ShieldV1ModemCore.setCommandCounter(2);
+		break;
+		
+		case 2:
+		char auxLocate1 [15];
+		prepareAuxLocate(PSTR("+QFTPPATH:0\r\n"), auxLocate1);
+		if(theGSM3ShieldV1ModemCore.genericParse_rsp(resp,auxLocate1))
+		{
+			// Response received
+			if(resp)
+			{
+				// Received +QFTPPATH:0
+				// Great. We're done
+				theGSM3ShieldV1ModemCore.theBuffer().chopUntil(auxLocate1, true);
+				theGSM3ShieldV1ModemCore.genericCommand_rq(PSTR("AT+QFTPPUT=\""), false);
+				theGSM3ShieldV1ModemCore.print(ftpFileUpload);
+				theGSM3ShieldV1ModemCore.print("\",");
+				theGSM3ShieldV1ModemCore.print(ftpSizeUpload);
+				theGSM3ShieldV1ModemCore.print(",200");
+				theGSM3ShieldV1ModemCore.print('\r');
+				theGSM3ShieldV1ModemCore.setCommandCounter(3);
+			}
+			else theGSM3ShieldV1ModemCore.closeCommand(2);
+		}
+		break;
+		
+		case 3:
+		if(theGSM3ShieldV1ModemCore.genericParse_rsp(resp))
+		{
+			// Response received
+			if(resp)
+			{
+				// OK Received
+				// Great. Go for the next step
+				theGSM3ShieldV1ModemCore.setCommandCounter(4);
+			}
+			else theGSM3ShieldV1ModemCore.closeCommand(2);
+		}
+		break;
+		
+		case 4:
+		char auxLocate2 [11];
+		prepareAuxLocate(PSTR("CONNECT"), auxLocate2);
+		if(theGSM3ShieldV1ModemCore.genericParse_rsp(resp,auxLocate2))
+		{
+			// Response received
+			if(resp)
+			{
+				theGSM3ShieldV1ModemCore.theBuffer().chopUntil("CONNECT", true);
+				theGSM3ShieldV1ModemCore.print(ftpDataUpload);
+				theGSM3ShieldV1ModemCore.setCommandCounter(5);
+			}
+			else theGSM3ShieldV1ModemCore.closeCommand(2);
+		}
+		break;
+		
+		case 5:
+		char auxLocate3 [11];
+		prepareAuxLocate(PSTR("+QFTPPUT:"), auxLocate3);
+		if(theGSM3ShieldV1ModemCore.genericParse_rsp(resp,auxLocate3))
+		{
+			// Response received
+			if(resp)
+			{
+				// Received +QFTPGET:-
+				// Error
+				theGSM3ShieldV1ModemCore.theBuffer().chopUntil("QFTPPUT", true);
+				sizeFileFTP = theGSM3ShieldV1ModemCore.theBuffer().readLong();
+				if (sizeFileFTP > 0)
+				{
+					theGSM3ShieldV1ModemCore.closeCommand(1);
+				}
+				else theGSM3ShieldV1ModemCore.closeCommand(2);
+			}
+			else theGSM3ShieldV1ModemCore.closeCommand(2);
+		}
+		break;		
+		
 	}
 }
 
