@@ -38,6 +38,7 @@ https://github.com/BlueVia/Official-Arduino
 #define __TOUTSHUTDOWN__ 5000
 #define __TOUTMODEMCONFIGURATION__ 5000//equivalent to 30000 because of time in interrupt routine.
 #define __TOUTAT__ 1000
+#define __TOUTMODEMCONNECTION__ 60000
 
 const char _command_AT[] PROGMEM = "AT";
 const char _command_CGREG[] PROGMEM = "AT+CGREG?";
@@ -67,8 +68,9 @@ void GSM3ShieldV1AccessProvider::manageResponse(byte from, byte to)
 // Begin
 // Restart or start the modem
 // May be synchronous
-GSM3_NetworkStatus_t GSM3ShieldV1AccessProvider::begin(char* pin, bool restart, bool synchronous)
+GSM3_NetworkStatus_t GSM3ShieldV1AccessProvider::begin(char* pin, bool restart, bool synchronous, unsigned long start_time)
 {	
+	Time_to_start = start_time;
 	pinMode(__RESETPIN__, OUTPUT);
 
 	#ifdef TTOPEN_V1
@@ -138,6 +140,7 @@ int GSM3ShieldV1AccessProvider::ModemConfiguration(char* pin)
 void GSM3ShieldV1AccessProvider::ModemConfigurationContinue()
 {
 	bool resp;
+	unsigned long actual_time;
 
 	// 1: Send AT
 	// 2: Wait AT OK and SetPin or CGREG
@@ -211,11 +214,17 @@ void GSM3ShieldV1AccessProvider::ModemConfigurationContinue()
 			else
 			{
 				// If not, launch command again
+				actual_time = millis();				
+				
 				if(theGSM3ShieldV1ModemCore.takeMilliseconds() > __TOUTMODEMCONFIGURATION__)
 				{
 					theGSM3ShieldV1ModemCore.closeCommand(3);
 				}
-				else 
+				else if(actual_time - Time_to_start > __TOUTMODEMCONNECTION__)
+				{
+					theGSM3ShieldV1ModemCore.closeCommand(3);
+				}
+				else
 				{
 					theGSM3ShieldV1ModemCore.delayInsideInterrupt(2000);
 					theGSM3ShieldV1ModemCore.genericCommand_rq(_command_CGREG);
