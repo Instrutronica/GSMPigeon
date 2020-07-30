@@ -214,7 +214,7 @@ void GSM3ShieldV1AccessProvider::ModemConfigurationContinue()
 			else
 			{
 				// If not, launch command again
-				actual_time = millis();				
+				actual_time = millis();		
 				
 				if(theGSM3ShieldV1ModemCore.takeMilliseconds() > __TOUTMODEMCONFIGURATION__)
 				{
